@@ -29,9 +29,10 @@ Route::get('/login', function (){
 
 Route::group(['prefix' => '/employee'/*, 'middleware' => 'auth:api-employees'*/], function (){
     Route::get('/', [EmployeeController::class, 'index']);
+    Route::get('/{id}', [EmployeeController::class, 'show']);
     Route::post('/', [EmployeeController::class, 'store']);
-    Route::put('/', [EmployeeController::class, 'update']);
-    Route::delete('/', [EmployeeController::class, 'destroy']);
+    Route::post('/update/{id}', [EmployeeController::class, 'update']);
+    Route::delete('/(id)', [EmployeeController::class, 'destroy']);
 });
 
 Route::group(['prefix' => '/company'], function (){
@@ -52,6 +53,11 @@ Route::post('/register', [EmployeeController::class, 'registerEmployee']);
 Route::post('employee/reset/password/email-check', [EmployeeController::class, 'resetPasswordEmailCheck']);
 Route::post('employee/reset/password/{token}', [EmployeeController::class, 'resetPassword']);
 
+Route::get('employee/notifications/{id}', [EmployeeController::class, 'getEmployeeNotifications']);
+Route::get('employee/notifications/read/{id}', [EmployeeController::class, 'readNotifications']);
 
 
+Route::get('name', function (){
+   return  'houider walid';
+});
 

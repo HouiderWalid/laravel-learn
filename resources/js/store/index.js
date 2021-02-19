@@ -1,22 +1,18 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import userModule from './modules/user'
-import VuexPersistence from 'vuex-persist';
+import createPersistedState from 'vuex-persistedstate'
 
 Vue.use(Vuex)
 
-const vuexLocal = new VuexPersistence({
-    storage: window.localStorage,
-    reducer: (state) => ({ userModule: state.userModule })
-});
-
-const plugins = [
-    vuexLocal.plugin
-];
+const dataState = createPersistedState({
+    key: 'auth-project-storage',
+    paths: ['userStorage.user']
+})
 
 export default new Vuex.Store({
     modules: {
-        userModule
+        userStorage: userModule
     },
-    plugins: plugins
+    plugins: [dataState]
 })

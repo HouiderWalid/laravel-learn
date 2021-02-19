@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class RegisterEmployeeNotification extends Notification implements ShouldQueue
+class RegisterEmployeeNotification extends Notification
 {
     use Queueable;
 
@@ -29,7 +29,7 @@ class RegisterEmployeeNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['mail'];
+        return explode(', ',$notifiable->employee_notification_prefrences);
     }
 
     /**
@@ -55,7 +55,9 @@ class RegisterEmployeeNotification extends Notification implements ShouldQueue
     public function toArray($notifiable)
     {
         return [
-            //
+            'header' => 'Welcome to auth',
+            'body' => "Hello $notifiable->username ! Thank you for signing up to our site, we hope you enjoy with us.",
+            'footer' => 'sent by ' . env('APP_NAME') . '.'
         ];
     }
 }

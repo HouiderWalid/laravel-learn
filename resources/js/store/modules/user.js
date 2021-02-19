@@ -1,11 +1,24 @@
 import Axios from "axios";
-Axios.defaults.baseURL = "http://localhost/api/";
+import globals from "../../helpers/globals"
+const instance = Axios.create({
+    baseURL: globals.app_url + "api/",
+    timeout: 60000,
+    xsrfHeaderName: 'X-XSRF-TOKEN',
+    xsrfCookieName: 'X-XSRF-TOKEN',
+    headers: {
+        'content-type': 'multipart/form-data',
+        'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content
+    },
+    responseType: 'json'
+});
 const constants = {
     DEFAULT: 0,
     LOGIN: 1,
     REGISTER: 2,
     RESET_PASSWORD: 3,
-    RESET_PASSWORD_CALL_BACK: 4
+    RESET_PASSWORD_CALL_BACK: 4,
+    NOTIFICATIONS: 5,
+    PROFILE: 6
 }
 
 const state ={
@@ -41,6 +54,16 @@ const state ={
             "errors": {}
         }
     },
+    user_notifications: {
+        loading: false,
+        notifications: []
+    },
+    user_profile_form:{
+        loading: false,
+        messages: {
+            "errors": {}
+        }
+    }
 }
 
 const mutations ={
@@ -55,6 +78,7 @@ const mutations ={
             case constants.DEFAULT:
                 state.user_login_form.loading = payload.state
                 state.user_register_form.loading = payload.state
+                break
             case constants.LOGIN:
                 state.user_login_form.loading = payload.state
                 break
@@ -66,6 +90,12 @@ const mutations ={
                 break
             case constants.RESET_PASSWORD_CALL_BACK:
                 state.user_reset_password_callback_form.loading = payload.state
+                break
+            case constants.NOTIFICATIONS:
+                state.user_notifications.loading = payload.state
+                break
+            case constants.PROFILE:
+                state.user_profile_form.loading = payload.state
                 break
             default :
                 console.log('nothing to load')
@@ -89,11 +119,16 @@ const mutations ={
             case constants.RESET_PASSWORD_CALL_BACK:
                 msg = state.user_reset_password_callback_form.messages
                 break
+            case constants.PROFILE:
+                msg = state.user_profile_form.messages
+                break
             default:
                 console.log('nothing to display')
         }
-        Object.keys(msg).forEach(key => msg[key] = {})
-        msg[payload.messages.type] = payload.messages.message
+        if (msg != null){
+            Object.keys(msg).forEach(key => msg[key] = {})
+            msg[payload.messages.type] = payload.messages.message
+        }
     },
     SET_LANGUAGE(state, payload){
         state.user.lang = payload
@@ -103,6 +138,9 @@ const mutations ={
     },
     SET_RESET_PASSWORD_VALIDATION(state, payload){
         state.user_reset_password_form.validate = payload
+    },
+    SET_USER_NOTIFICATIONS(state, payload){
+        state.user_notifications.notifications = payload
     }
 }
 
@@ -114,7 +152,7 @@ const actions ={
         payload.forEach(field => loginData.append(field.name, field.data))
         let server_response = null
         try {
-            server_response = await Axios.post('login', loginData)
+            server_response = await instance.post('login', loginData)
             if (server_response != null){
                 if (server_response.data.code === 200) {
                     let json_data = server_response.data.data
@@ -136,7 +174,7 @@ const actions ={
         commit('SET_LOADING', {case: payload.case, state: true})
         let server_response = null
         try{
-            server_response = await Axios.get('login/'+payload.provider)
+            server_response = await instance.get('login/'+payload.provider)
             if (server_response && server_response.data.code === 200) window.location.href = server_response.data.data
             else if(server_response){
                 commit('SET_FORM_MESSAGES', {case: payload.case, messages: {"type": "errors", "message": {"general_error": [server_response.data.message ? server_response.data.message : 'Unknown error']}}})
@@ -148,7 +186,7 @@ const actions ={
     async socialMedialCallback({commit}, payload){
         let server_response = null
         try{
-            server_response = await Axios.get('login/'+payload.provider+'/callback', { params: payload.query })
+            server_response = await instance.get('login/'+payload.provider+'/callback', { params: payload.query })
             if (server_response && server_response.data.code === 200){
                 let json_data = server_response.data.data
                 commit('SET_LOGGED', {case: constants.LOGIN, state: true})
@@ -169,7 +207,7 @@ const actions ={
         payload.forEach(field => registerData.append(field.name, field.data))
         let server_response = null
         try {
-            server_response = await Axios.post('register', registerData)
+            server_response = await instance.post('register', registerData)
             if (server_response != null){
                 if (server_response.data.code === 200) {
                     let json_data = server_response.data.data
@@ -194,8 +232,7 @@ const actions ={
         payload.forEach(field => registerData.append(field.name, field.data))
         let server_response = null
         try {
-            server_response = await Axios.post('employee/reset/password/email-check', registerData)
-            console.log(server_response)
+            server_response = await instance.post('employee/reset/password/email-check', registerData)
             if (server_response != null){
                 if (server_response.data.code === 200) {
                     let json_data = server_response.data.data
@@ -211,6 +248,65 @@ const actions ={
             commit('SET_FORM_MESSAGES', {case: constants.RESET_PASSWORD, messages: {"type": "errors", "message": {"general_errors": ['server failure']}}})
         }
         commit('SET_LOADING', {case: constants.RESET_PASSWORD, state: false})
+    },
+    async getUserNotifications({commit, state}, payload){
+        commit('SET_LOADING', {case: payload.case, state: true})
+        let server_response = null
+        try {
+            server_response = await instance.get('employee/notifications/'+state.user.profile.employee_id)
+            console.log(server_response.data)
+            if (server_response != null) {
+                if (server_response.data.code === 200) {
+                    commit('SET_USER_NOTIFICATIONS', JSON.parse(server_response.data.data))
+                }else if (server_response.data.code === 404){
+                    commit('SET_FORM_MESSAGES', {case: payload.case, messages: {"type": "errors", "message": server_response.data.message}})
+                }
+            }
+        }catch (e) {
+            commit('SET_FORM_MESSAGES', {case: payload.case, messages: {"type": "errors", "message": {"general_errors": ['server failure']}}})
+        }
+        commit('SET_LOADING', {case: payload.case, state: false})
+    },
+    async readNotifications({commit, state}){
+        commit('SET_LOADING', {case: constants.RESET_PASSWORD, state: true})
+        let server_response = null
+        try {
+            server_response = await instance.get('employee/notifications/read/'+state.user.profile.employee_id)
+            if (server_response != null) {
+                if (server_response.data.code === 200) {
+                    commit('SET_USER_NOTIFICATIONS', JSON.parse(server_response.data.data))
+                }else if (server_response.data.code === 404){
+                    commit('SET_FORM_MESSAGES', {case: constants.RESET_PASSWORD, messages: {"type": "errors", "message": server_response.data.message}})
+                }
+            }
+        }catch (e) {
+            commit('SET_FORM_MESSAGES', {case: constants.RESET_PASSWORD, messages: {"type": "errors", "message": {"general_errors": ['server failure']}}})
+        }
+        commit('SET_LOADING', {case: constants.RESET_PASSWORD, state: false})
+    },
+    async updateUserProfile({commit, state}, payload){
+        commit('SET_LOADING', {case: constants.PROFILE, state: true})
+        const profileData = new FormData()
+        profileData.append('lang', state.user.lang.lang || navigator.language.split('-')[0])
+        payload.forEach(field => profileData.append(field.id, field.content))
+        let server_response = null
+        try {
+            server_response = await instance.post('employee/update/'+state.user.profile['employee_id'], profileData)
+            console.log(server_response.data)
+            if (server_response != null){
+                if (server_response.data.code === 200) {
+                    let json_data = server_response.data.data
+                    //commit('SET_USER_PROFILE', json_data['user'])
+                }else if(server_response.data.code === 401){
+                    commit('SET_FORM_MESSAGES', {case: constants.PROFILE, messages: {"type": "errors", "message": server_response.data.message}})
+                }else{
+                    commit('SET_FORM_MESSAGES', {case: constants.PROFILE, messages: {"type": "errors", "message": {"general_error": [server_response.data.message ? server_response.data.message : 'Unknown error']}}})
+                }
+            }
+        }catch (e) {
+            commit('SET_FORM_MESSAGES', {case: constants.PROFILE, messages: {"type": "errors", "message": {"general_errors": ['server failure']}}})
+        }
+        commit('SET_LOADING', {case: constants.PROFILE, state: false})
     },
     logout({commit}){
         commit('SET_LOGGED', {case: constants.LOGIN, state: false})
@@ -241,6 +337,9 @@ const getters ={
             case constants.RESET_PASSWORD:
                 loading = state.user_reset_password_form.loading
                 break
+            case constants.PROFILE:
+                loading = state.user_profile_form.loading
+                break
             default:
                 loading = false
         }
@@ -261,6 +360,9 @@ const getters ={
             case constants.RESET_PASSWORD_CALL_BACK:
                 messages = state.user_reset_password_callback_form.messages
                 break
+            case constants.PROFILE:
+                messages = state.user_profile_form.messages
+                break
             default:
                 messages = false
         }
@@ -274,6 +376,12 @@ const getters ={
     },
     getPasswordResetValidation(state){
         return state.user_reset_password_form.validate;
+    },
+    getUser(state){
+        return state.user.profile
+    },
+    getNotifications(state) {
+        return state.user_notifications.notifications
     }
 }
 

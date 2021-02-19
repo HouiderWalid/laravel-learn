@@ -27,6 +27,10 @@ class Employee extends Authenticatable implements HasLocalePreference
         'employee_password',
     ];
 
+    protected $hidden = [
+      'employee_password'
+    ];
+
     public function company()
     {
         $this->belongsTo(Company::class);
@@ -54,5 +58,28 @@ class Employee extends Authenticatable implements HasLocalePreference
     public function preferredLocale()
     {
         return $this->locale;
+    }
+
+    public function routeNotificationForMail($notification)
+    {
+        return $this->employee_email;
+    }
+
+    public static function array_column_multi($old_array, $columns)
+    {
+        $new_array = [];
+        foreach ($old_array as $val){
+            $object = [];
+            foreach ($columns as $col){
+                if (isset($val[$col])) $object[$col] = $val[$col];
+            }
+            array_push($new_array, $object);
+        }
+        return $new_array;
+    }
+
+    public static function hello()
+    {
+        return 'hello';
     }
 }

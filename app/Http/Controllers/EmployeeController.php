@@ -7,6 +7,7 @@ use App\Jobs\EmailJob;
 use App\Mail\ResetPasswordMail;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Notifications\RegisterEmployeeNotification;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Http\File;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Laravel\Socialite\Facades\Socialite;
 
 class EmployeeController extends Controller
@@ -81,7 +83,7 @@ class EmployeeController extends Controller
         $employee = new Employee();
         $employee->employee_username = $request->employee_username;
         $employee->employee_email = $request->employee_email;
-        $employee->employee_image = $request->file('employee_image')->storeAs('iamges/employees', time().$request->employee_username);
+        $employee->employee_image = env('APP_URL').$request->file('employee_image')->storeAs('iamges/employees', time().$request->employee_username, 'public');
         $employee->employee_first_name = $request->employee_first_name;
         $employee->employee_last_name = $request->employee_last_name;
         $employee->employee_phone = $request->employee_phone;
@@ -133,8 +135,8 @@ class EmployeeController extends Controller
         if(!$employee) return $this->sendApiRequestFormat(404, null, 'Employee not found.');
 
         $fields = [
-            'employee_username' => 'nullable|min:3|unique:employees|max:15',
-            'employee_email' => 'nullable|email|max:40',
+            'employee_username' => ['required', 'min:3', 'max:15', Rule::unique('employees')->ignore($employee)],
+            'employee_email' => ['required', 'email', 'max:40', Rule::unique('employees')->ignore($employee)],
             'employee_image' => 'nullable|image|max:2048',
             'employee_first_name' => 'nullable|min:3|max:15',
             'employee_last_name' => 'nullable|min:3|max:15',
@@ -150,7 +152,9 @@ class EmployeeController extends Controller
 
         $employee->employee_username = $request->employee_username;
         $employee->employee_email = $request->employee_email;
-        $employee->employee_image = $request->file('employee_image')->storeAs('iamges/employees', time().$request->employee_username);
+        if ($request->file('employee_image'))
+            $employee->employee_image = env('APP_URL').$request->file('employee_image')->storeAs('images/employees', time().$request->employee_username, 'public');
+        elseif (gettype($request->employee_image) == "string") $employee->employee_image = $request->employee_image;
         $employee->employee_first_name = $request->employee_first_name;
         $employee->employee_last_name = $request->employee_last_name;
         $employee->employee_phone = $request->employee_phone;
@@ -160,7 +164,7 @@ class EmployeeController extends Controller
 
         if(!$employee->save()) return $this->sendApiRequestFormat(500, null, 'Employee creation failed.');
 
-        return $this->sendApiRequestFormat(200, null, 'Employee cteated successfully.');
+        return $this->sendApiRequestFormat(200, null, 'Employee updated successfully.');
     }
 
     /**
@@ -323,8 +327,8 @@ class EmployeeController extends Controller
         if($user->getAvatar()) {
             $avatarContent = file_get_contents($user->getAvatar());
             $avatarName = $this->getImageNameFromUrl($user->getAvatar());
-            Storage::put('/images/employees/' . $avatarName, $avatarContent);
-            $oldUser->employee_image = $avatarName;
+            Storage::disk('public')->put('/images/employees/' . $avatarName, $avatarContent);
+            $oldUser->employee_image = env('APP_URL').'/files/images/employees/'.$avatarName;
         }else $oldUser->employee_image = $this->getDefaultAvatar();
         $oldUser->employee_first_name = $fullName[0];
         $oldUser->employee_last_name = $fullName[1];
@@ -339,6 +343,8 @@ class EmployeeController extends Controller
             'token_type' => 'Bearer',
             'expires_at' => Carbon::parse( $token_result->expires_at )->toDateTimeString()
         ];
+
+        $oldUser->notify(new RegisterEmployeeNotification());
 
         return $this->sendApiRequestFormat(200, $data, "login with $provider done successfully.");
     }
@@ -434,6 +440,32 @@ class EmployeeController extends Controller
         //EmailJob::dispatch($data)->delay(now()->addSeconds(10));
 
         return $this;
+    }
+
+    public function getEmployeeNotifications($id)
+    {
+        $employee = Employee::find($id);
+
+        if (!$employee) return $this->sendApiRequestFormat(404, null, 'Employee not found');
+
+        return $this->sendApiRequestFormat(200, json_encode($employee->array_column_multi($employee->notifications->toarray(), ['id', 'data', 'created_at', 'read_at'])), 'success');
+
+    }
+
+    public function readNotifications($id)
+    {
+        $employee = Employee::find($id);
+
+        if (!$employee) return $this->sendApiRequestFormat(404, null, 'Employee not found');
+
+        $employee->unreadNotifications->markAsRead();
+
+        return $this->sendApiRequestFormat(200, json_encode($employee->array_column_multi($employee->notifications->toarray(), ['id', 'data', 'created_at', 'read_at'])), 'success');
+    }
+
+    public function verifyEmail()
+    {
+
     }
 
 }

@@ -1,7 +1,7 @@
 <template>
     <div class="d-flex align-items-center flex-column vh-100 w-100">
         <div id="form-container" class="d-flex flex-column align-items-center w-100 h-100 pt-4">
-            <langSelect :langs="languages" :selected="currentLanguage" @update-lang="updateLanguage" ></langSelect>
+            <langSelect :langs="languages" :selected="currentLanguage" @update-lang="updateLanguage"></langSelect>
             <div class="d-flex w-100 flex-column justify-content-center m-auto p-2 position-relative">
                 <div :class="[ isLoading ? 'd-flex' : 'd-none']"
                      class="op-05 text-center justify-content-center align-items-center position-absolute w-100 h-100"
@@ -80,7 +80,7 @@
     </div>
 </template>
 <script>
-import langSelect from '../components/ui/select_language'
+import langSelect from './ui/select_language'
 import lang from "../plugins/languages";
 export default {
     name: "login_page",
@@ -159,11 +159,12 @@ export default {
         },
         async socialMediaLogin(provider){
             await this.$store.dispatch('socialMediaLogin', {case: this.$store.getters.getConstants.LOGIN, provider: provider})
-            this.displayErrors()
         }
     },
     created() {
         console.log('login')
+        console.log(document.querySelector("html").lang)
+        document.title = 'login page'
     }
 }
 </script>

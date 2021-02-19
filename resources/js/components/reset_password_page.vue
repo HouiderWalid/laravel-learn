@@ -82,7 +82,10 @@ export default {
         async resetPassword(){
             await this.$store.dispatch('resetPassword', [{ name: this.resetForm[0].id, data: this.resetForm[0].content }])
             this.displayErrors()
-            if (this.$store.getters.getPasswordResetValidation) await this.$router.push('/reset-password/message')
+            if (this.$store.getters.getPasswordResetValidation) await this.$router.push({
+                name: 'reset_password_message',
+                params: { email: this.resetForm[0].content }
+            })
         },
         displayErrors() {
             let err = this.$store.getters.getFormMessages(this.$store.getters.getConstants.RESET_PASSWORD)
@@ -101,6 +104,10 @@ export default {
             this.$store.dispatch('changeLanguage', locale)
             this.$i18n.locale = locale.lang
         },
+
+    },
+    created() {
+        //console.log('reset...')
     }
 }
 </script>

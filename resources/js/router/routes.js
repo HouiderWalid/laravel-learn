@@ -7,9 +7,9 @@ import RootPage from "../components/root_page"
 import ProviderPage from "../components/auth-provider/provider_page"
 import ProfilePage from "../components/profile_page"
 import DashboardPage from "../components/dashboard_page"
+import EmailSendFeedBack from "../components/EmailSendFeedBack";
 import ResetPasswordPage from "../components/reset_password_page"
 import ResetPasswordCallbackPage from "../components/reset_password_callback_page"
-import ResetPasswordMessage from "../components/reset-password-message"
 import NotFoundPage from "../components/not_found_page"
 import store from '../store'
 import { checkAuth, preventAuth } from './middlewares'
@@ -21,6 +21,37 @@ const routes = [
         path: '/',
         component: RootPage,
         children: [
+            {
+                name: 'test',
+                path: 'test',
+                component: () => import(/* webpackChunkName: "testPage" */ '../components/test_page'),
+                children: [
+                    {
+                        path: '',
+                        component: () => import(/* webpackChunkName: "testPage" */ '../components/main_page'),
+                    },
+                    {
+                        name: 'laptop',
+                        path: '/laptop',
+                        component: () => import(/* webpackChunkName: "laptopPage" */ '../components/laptop_page')
+                    },
+                    {
+                        name: 'desktop',
+                        path: '/desktop',
+                        component: () => import(/* webpackChunkName: "desktopPage" */ '../components/desktop_page')
+                    },
+                    {
+                        name: 'accessory',
+                        path: '/accessory',
+                        component: () => import(/* webpackChunkName: "accessoryPage" */ '../components/accessory_page')
+                    },
+                    {
+                        name: 'contact',
+                        path: '/contact',
+                        component: () => import(/* webpackChunkName: "contactPage" */ '../components/contact_page')
+                    }
+                ]
+            },
             {
                 name:'login',
                 path: 'login',
@@ -34,17 +65,8 @@ const routes = [
             {
                 name:'reset-password',
                 path: 'reset/password',
+                props: true,
                 component: ResetPasswordPage,
-                meta: {
-                    middleware: [
-                        preventAuth
-                    ]
-                }
-            },
-            {
-                name:'reset-password-message',
-                path: 'reset/password/message',
-                component: ResetPasswordMessage,
                 meta: {
                     middleware: [
                         preventAuth
@@ -118,9 +140,20 @@ const routes = [
                                 checkAuth
                             ]
                         }
-                    },
+                    }
                 ]
             },
+            {
+                name: 'reset_password_message',
+                path: 'reset/password/message',
+                component: EmailSendFeedBack,
+                props: true,
+                meta: {
+                    middleware: [
+
+                    ]
+                },
+            }
         ]
     },
     {

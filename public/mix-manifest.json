@@ -1,4 +1,14 @@
 {
     "/js/app.js": "/js/app.js",
-    "/css/app.css": "/css/app.css"
+    "/css/app.css": "/css/app.css",
+    "/accessoryPage.js": "/accessoryPage.js",
+    "/contactPage.js": "/contactPage.js",
+    "/desktopPage.js": "/desktopPage.js",
+    "/filterBrand.js": "/filterBrand.js",
+    "/filterPrice.js": "/filterPrice.js",
+    "/footer.js": "/footer.js",
+    "/laptopPage.js": "/laptopPage.js",
+    "/navBar.js": "/navBar.js",
+    "/productCard.js": "/productCard.js",
+    "/testPage.js": "/testPage.js"
 }

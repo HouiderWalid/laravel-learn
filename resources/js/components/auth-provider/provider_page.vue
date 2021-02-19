@@ -1,6 +1,6 @@
 <template>
     <div class="w-100 vh-100 d-flex align-items-center justify-content-center flex-column">
-        <p class="waiting-message">Fetching your data from {{ $route.params.provider }} service, Please wait...</p>
+        <p class="waiting-message">Fetching your data from <strong>{{ $route.params.provider }}</strong> service, Please wait...</p>
         <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
     </div>
 </template>
